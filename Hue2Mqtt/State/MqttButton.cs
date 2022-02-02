@@ -1,12 +1,14 @@
-﻿namespace Hue2Mqtt.State;
+﻿using Hue2Mqtt.HueApi;
+
+namespace Hue2Mqtt.State;
 
 internal class MqttButton : MqttDevice
 {
     public MqttButton(string topic, HueResource hueResource) : base(topic)
     {
-        if (hueResource.button != null)
+        if (hueResource.Button != null)
         {
-            Event = hueResource.button.last_event;
+            Event = hueResource.Button.LastEvent;
         }
     }
 

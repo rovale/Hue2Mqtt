@@ -1,35 +1,37 @@
-﻿namespace Hue2Mqtt.State
+﻿using Hue2Mqtt.HueApi;
+
+namespace Hue2Mqtt.State
 {
     internal abstract class MqttDevice
     {
         public static MqttDevice CreateFrom(string topic, HueResource hueResource)
         {
-            if (hueResource.type == "button")
+            if (hueResource.Type == "button")
             {
                 return new MqttButton(topic, hueResource);
             }
 
-            if (hueResource.type == "device_power")
+            if (hueResource.Type == "device_power")
             {
                 return new MqttDevicePower(topic, hueResource);
             }
 
-            if (hueResource.type == "light")
+            if (hueResource.Type == "light")
             {
                 return new MqttLight(topic, hueResource);
             }
 
-            if (hueResource.type == "light_level")
+            if (hueResource.Type == "light_level")
             {
                 return new MqttLightLevel(topic, hueResource);
             }
 
-            if (hueResource.type == "motion")
+            if (hueResource.Type == "motion")
             {
                 return new MqttMotion(topic, hueResource);
             }
 
-            if (hueResource.type == "temperature")
+            if (hueResource.Type == "temperature")
             {
                 return new MqttTemperature(topic, hueResource);
             }

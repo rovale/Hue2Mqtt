@@ -1,12 +1,14 @@
-﻿namespace Hue2Mqtt.State;
+﻿using Hue2Mqtt.HueApi;
+
+namespace Hue2Mqtt.State;
 
 internal class MqttTemperature : MqttDevice
 {
     public MqttTemperature(string topic, HueResource hueResource) : base(topic)
     {
-        if (hueResource.temperature != null && hueResource.temperature.temperature_valid)
+        if (hueResource.Temperature is { IsValid: true })
         {
-            Temperature = hueResource.temperature.temperature;
+            Temperature = hueResource.Temperature.Value;
         }
     }
 

@@ -1,12 +1,14 @@
-﻿namespace Hue2Mqtt.State;
+﻿using Hue2Mqtt.HueApi;
+
+namespace Hue2Mqtt.State;
 
 internal class MqttLightLevel : MqttDevice
 {
     public MqttLightLevel(string topic, HueResource hueResource) : base(topic)
     {
-        if (hueResource.light is { light_level_valid: true })
+        if (hueResource.LightLevel is { IsValid: true })
         {
-            LightLevel = hueResource.light.light_level;
+            LightLevel = hueResource.LightLevel.Value;
         }
     }
 

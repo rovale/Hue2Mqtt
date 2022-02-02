@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json;
+using Hue2Mqtt.HueApi;
 using Hue2Mqtt.State;
 using Humanizer;
 
@@ -55,18 +56,18 @@ namespace Hue2Mqtt
 
             foreach (var device in devices)
             {
-                var deviceName = device.metadata?.name ?? "Unknown device";
+                var deviceName = device.Metadata?.Name ?? "Unknown device";
 
-                foreach (var relatedService in device.services.Where(s => !ignoredTypes.Contains(s.rtype)))
+                foreach (var relatedService in device.Services.Where(s => !ignoredTypes.Contains(s.RelatedType)))
                 {
-                    if (!_servicesByType.ContainsKey(relatedService.rtype))
+                    if (!_servicesByType.ContainsKey(relatedService.RelatedType))
                     {
-                        _servicesByType[relatedService.rtype] = await GetResources(client, relatedService.rtype);
+                        _servicesByType[relatedService.RelatedType] = await GetResources(client, relatedService.RelatedType);
                     }
 
-                    var services = _servicesByType[relatedService.rtype];
+                    var services = _servicesByType[relatedService.RelatedType];
 
-                    var service = services.Single(s => s.id == relatedService.rid);
+                    var service = services.Single(s => s.Id == relatedService.RelatedId);
                     RegisterTopicName(service, deviceName);
                 }
             }
@@ -80,11 +81,11 @@ namespace Hue2Mqtt
             var areas = await GetResources(client, areaType1);
             foreach (var area in areas)
             {
-                var roomName = area.metadata?.name ?? "Unknown area";
+                var roomName = area.Metadata?.Name ?? "Unknown area";
 
-                foreach (var relatedService in area.services.Where(s => s.rtype == "grouped_light"))
+                foreach (var relatedService in area.Services.Where(s => s.RelatedType == "grouped_light"))
                 {
-                    _mqttTopicsById[relatedService.rid] = $"{roomName}Lights".Pascalize();
+                    _mqttTopicsById[relatedService.RelatedId] = $"{roomName}Lights".Pascalize();
                 }
             }
         }
@@ -93,15 +94,15 @@ namespace Hue2Mqtt
         {
             var mqttTopic = CreateMqttTopic(resource, mainDeviceName);
 
-            if (!_mqttTopicsById.ContainsKey(resource.id))
+            if (!_mqttTopicsById.ContainsKey(resource.Id))
             {
-                _mqttTopicsById[resource.id] = mqttTopic;
+                _mqttTopicsById[resource.Id] = mqttTopic;
             }
 
-            if (!_mqttDevicesById.ContainsKey(resource.id))
+            if (!_mqttDevicesById.ContainsKey(resource.Id))
             {
                 var mqttDevice = MqttDevice.CreateFrom(mqttTopic, resource);
-                _mqttDevicesById[resource.id] = mqttDevice;
+                _mqttDevicesById[resource.Id] = mqttDevice;
             }
         }
 
@@ -111,11 +112,11 @@ namespace Hue2Mqtt
 
             nameParts.Add(mainDeviceName.Pascalize());
 
-            var resourceType = resource.type;
+            var resourceType = resource.Type;
 
             if (resourceType == "button")
             {
-                nameParts.Add($"Button{resource.metadata.control_id}");
+                nameParts.Add($"Button{resource.Metadata!.ControlId}");
             }
             else if (resourceType != "light")
             {
@@ -150,9 +151,9 @@ namespace Hue2Mqtt
                     var eventStream = JsonSerializer.Deserialize<EventStream[]>(data);
                     foreach (var @event in eventStream)
                     {
-                        foreach (var datum in @event.data)
+                        foreach (var datum in @event.Data)
                         {
-                            Console.WriteLine(_mqttTopicsById[datum.id]);
+                            Console.WriteLine(_mqttTopicsById[datum.Id]);
                         }
                     }
                 }

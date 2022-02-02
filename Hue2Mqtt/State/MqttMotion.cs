@@ -1,12 +1,14 @@
-﻿namespace Hue2Mqtt.State;
+﻿using Hue2Mqtt.HueApi;
+
+namespace Hue2Mqtt.State;
 
 internal class MqttMotion : MqttDevice
 {
     public MqttMotion(string topic, HueResource hueResource) : base(topic)
     {
-        if (hueResource.motion is { motion_valid: true })
+        if (hueResource.Motion is { IsValid: true })
         {
-            Motion = hueResource.motion.motion;
+            Motion = hueResource.Motion.Value;
         }
     }
 

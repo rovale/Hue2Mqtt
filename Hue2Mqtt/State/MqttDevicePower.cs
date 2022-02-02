@@ -1,13 +1,15 @@
-﻿namespace Hue2Mqtt.State;
+﻿using Hue2Mqtt.HueApi;
+
+namespace Hue2Mqtt.State;
 
 internal class MqttDevicePower : MqttDevice
 {
     public MqttDevicePower(string topic, HueResource hueResource) : base(topic)
     {
-        if (hueResource.power_state != null)
+        if (hueResource.Battery != null)
         {
-            BatteryLevel = hueResource.power_state.battery_level;
-            BatteryState = hueResource.power_state.battery_state;
+            BatteryLevel = hueResource.Battery.Level;
+            BatteryState = hueResource.Battery.State;
         }
     }
 

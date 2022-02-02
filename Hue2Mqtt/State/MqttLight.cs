@@ -1,28 +1,30 @@
-﻿namespace Hue2Mqtt.State;
+﻿using Hue2Mqtt.HueApi;
+
+namespace Hue2Mqtt.State;
 
 internal class MqttLight : MqttDevice
 {
     public MqttLight(string topic, HueResource hueResource) : base(topic)
     {
-        State = hueResource.on!.on ? PowerState.On : PowerState.Off;
+        State = hueResource.OnOffState!.IsOn ? PowerState.On : PowerState.Off;
 
-        if (hueResource.dimming != null)
+        if (hueResource.Brightness != null)
         {
-            Brightness = hueResource.dimming.brightness;
+            Brightness = hueResource.Brightness.Value;
         }
 
-        if (hueResource.color != null)
+        if (hueResource.Color != null)
         {
             Color = new Color
             {
-                X = hueResource.color.xy.x,
-                Y = hueResource.color.xy.y
+                X = hueResource.Color.Value.X,
+                Y = hueResource.Color.Value.Y
             };
         }
 
-        if (hueResource.color_temperature != null && hueResource.color_temperature.mirek_valid)
+        if (hueResource.ColorTemperature is { IsValid: true })
         {
-            ColorTemperature = hueResource.color_temperature.mirek;
+            ColorTemperature = hueResource.ColorTemperature.Value;
         }
     }
 
