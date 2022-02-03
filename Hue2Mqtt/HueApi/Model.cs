@@ -1,7 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-// ReSharper disable ClassNeverInstantiated.Global
-// ReSharper disable All
-#pragma warning disable CS8618
 
 namespace Hue2Mqtt.HueApi;
 

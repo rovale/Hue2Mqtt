@@ -1,4 +1,5 @@
-﻿using Hue2Mqtt.HueApi;
+﻿using System.Text.Json.Serialization;
+using Hue2Mqtt.HueApi;
 
 namespace Hue2Mqtt.State
 {
@@ -36,13 +37,17 @@ namespace Hue2Mqtt.State
                 return new MqttTemperature(topic, hueResource);
             }
 
-            return null;
+            throw new NotSupportedException($"Unknown device type {hueResource.Type}");
         }
 
         protected MqttDevice(string topic)
         {
             Topic = topic;
         }
+
+        [JsonIgnore]
         public string Topic { get; }
+
+        public abstract void UpdateFrom(HueResource hueResource);
     }
 }

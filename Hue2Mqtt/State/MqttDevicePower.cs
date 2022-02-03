@@ -6,6 +6,11 @@ internal class MqttDevicePower : MqttDevice
 {
     public MqttDevicePower(string topic, HueResource hueResource) : base(topic)
     {
+        UpdateFrom(hueResource);
+    }
+
+    public sealed override void UpdateFrom(HueResource hueResource)
+    {
         if (hueResource.Battery != null)
         {
             BatteryLevel = hueResource.Battery.Level;
@@ -13,6 +18,6 @@ internal class MqttDevicePower : MqttDevice
         }
     }
 
-    public int BatteryLevel { get; }
-    public string BatteryState { get; }
+    public int? BatteryLevel { get; set; }
+    public string? BatteryState { get; set; }
 }

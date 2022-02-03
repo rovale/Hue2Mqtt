@@ -6,11 +6,16 @@ internal class MqttLightLevel : MqttDevice
 {
     public MqttLightLevel(string topic, HueResource hueResource) : base(topic)
     {
-        if (hueResource.LightLevel is { IsValid: true })
+        UpdateFrom(hueResource);
+    }
+
+    public sealed override void UpdateFrom(HueResource hueResource)
+    {
+        if (hueResource.LightLevel != null)
         {
-            LightLevel = hueResource.LightLevel.Value;
+            LightLevel = hueResource.LightLevel.IsValid ? hueResource.LightLevel.Value : null;
         }
     }
 
-    public int? LightLevel { get; }
+    public int? LightLevel { get; set; }
 }

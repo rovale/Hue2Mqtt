@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Hue2Mqtt.HueApi;
 using Hue2Mqtt.State;
 using Humanizer;
@@ -141,24 +142,38 @@ namespace Hue2Mqtt
 
         async Task ProcessEventStream(HttpClient client)
         {
+            const string dataPrefix = "data: ";
             Console.WriteLine("Opening event stream");
             using var streamReader = new StreamReader(await client.GetStreamAsync(EventStreamUrl));
             while (!streamReader.EndOfStream)
             {
                 var message = await streamReader.ReadLineAsync();
-                if (message.StartsWith("data"))
+                if (message.StartsWith(dataPrefix))
                 {
-                    var data = message.Substring("data: ".Length);
-                    Console.WriteLine(data.JsonPrettify());
+                    var data = message.Substring(dataPrefix.Length);
+                    //Console.WriteLine(data.JsonPrettify());
 
                     var eventStream = JsonSerializer.Deserialize<EventStream[]>(data);
                     foreach (var @event in eventStream)
                     {
-                        foreach (var datum in @event.Data)
+                        foreach (var hueResource in @event.Data)
                         {
-                            if (_mqttDevicesById.ContainsKey(datum.Id))
+                            if (_mqttDevicesById.ContainsKey(hueResource.Id))
                             {
-                                Console.WriteLine(_mqttDevicesById[datum.Id].Topic);
+                                var mqttDevice = _mqttDevicesById[hueResource.Id];
+                                mqttDevice.UpdateFrom(hueResource);
+
+                                JsonSerializerOptions options = new JsonSerializerOptions
+                                {
+                                    Converters ={
+                                        new JsonStringEnumConverter()
+                                    },
+                                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                                };
+
+                                var json = JsonSerializer.Serialize(mqttDevice, mqttDevice.GetType(), options);
+
+                                Console.WriteLine($"- {mqttDevice.Topic} - {json}" );
                             }
                         }
                     }

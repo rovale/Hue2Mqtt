@@ -6,11 +6,16 @@ internal class MqttTemperature : MqttDevice
 {
     public MqttTemperature(string topic, HueResource hueResource) : base(topic)
     {
-        if (hueResource.Temperature is { IsValid: true })
+        UpdateFrom(hueResource);
+    }
+
+    public sealed override void UpdateFrom(HueResource hueResource)
+    {
+        if (hueResource.Temperature != null)
         {
-            Temperature = hueResource.Temperature.Value;
+            Temperature = hueResource.Temperature.IsValid ? hueResource.Temperature.Value : null;
         }
     }
 
-    public float? Temperature { get; }
+    public float? Temperature { get; set; }
 }

@@ -6,7 +6,15 @@ internal class MqttLight : MqttDevice
 {
     public MqttLight(string topic, HueResource hueResource) : base(topic)
     {
-        State = hueResource.OnOffState!.IsOn ? PowerState.On : PowerState.Off;
+        UpdateFrom(hueResource);
+    }
+
+    public sealed override void UpdateFrom(HueResource hueResource)
+    {
+        if (hueResource.OnOffState != null)
+        {
+            State = hueResource.OnOffState.IsOn ? PowerState.On : PowerState.Off;
+        }
 
         if (hueResource.Brightness != null)
         {
@@ -16,20 +24,20 @@ internal class MqttLight : MqttDevice
         if (hueResource.Color != null)
         {
             Color = new Color
-            {
-                X = hueResource.Color.Value.X,
-                Y = hueResource.Color.Value.Y
-            };
+                {
+                    X = hueResource.Color.Value.X,
+                    Y = hueResource.Color.Value.Y
+                };
         }
 
-        if (hueResource.ColorTemperature is { IsValid: true })
+        if (hueResource.ColorTemperature != null)
         {
-            ColorTemperature = hueResource.ColorTemperature.Value;
+            ColorTemperature = hueResource.ColorTemperature.IsValid ? hueResource.ColorTemperature.Value : null;
         }
     }
 
-    public PowerState State { get; }
-    public float? Brightness { get; }
-    public int? ColorTemperature { get; }
-    public Color? Color { get; }
+    public PowerState? State { get; private set; }
+    public float? Brightness { get; private set; }
+    public int? ColorTemperature { get; private set; }
+    public Color? Color { get; private set; }
 }

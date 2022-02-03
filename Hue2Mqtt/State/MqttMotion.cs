@@ -6,11 +6,16 @@ internal class MqttMotion : MqttDevice
 {
     public MqttMotion(string topic, HueResource hueResource) : base(topic)
     {
-        if (hueResource.Motion is { IsValid: true })
+        UpdateFrom(hueResource);
+    }
+
+    public sealed override void UpdateFrom(HueResource hueResource)
+    {
+        if (hueResource.Motion != null)
         {
-            Motion = hueResource.Motion.Value;
+            Motion = hueResource.Motion.IsValid ? hueResource.Motion.Value : null;
         }
     }
 
-    public bool? Motion { get; }
+    public bool? Motion { get; set; }
 }

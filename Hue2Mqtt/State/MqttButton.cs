@@ -6,11 +6,13 @@ internal class MqttButton : MqttDevice
 {
     public MqttButton(string topic, HueResource hueResource) : base(topic)
     {
-        if (hueResource.Button != null)
-        {
-            Event = hueResource.Button.LastEvent;
-        }
+        UpdateFrom(hueResource);
     }
 
-    public string Event { get; }
+    public sealed override void UpdateFrom(HueResource hueResource)
+    {
+        Event = hueResource.Button?.LastEvent;
+    }
+
+    public string? Event { get; set; }
 }
