@@ -11,9 +11,8 @@ namespace Hue2Mqtt
         const string Key = "QdvOeyTvim778xIdkxT38cBEsx3wd5B4As1r5d9T";
         const string ResourceUrl = "https://192.168.178.200/clip/v2/resource";
         const string EventStreamUrl = "https://192.168.178.200/eventstream/clip/v2";
-        readonly Dictionary<string, string> _mqttTopicsById = new();
         readonly Dictionary<string, MqttDevice> _mqttDevicesById = new();
-        readonly Dictionary<string, HueResource[]> _servicesByType = new();
+        readonly Dictionary<string, HueResource[]> _resourcesByType = new();
 
         public async Task Start()
         {
@@ -49,7 +48,7 @@ namespace Hue2Mqtt
 
         async Task RegisterDevices(HttpClient client)
         {
-            Console.WriteLine("Getting all topics");
+            Console.WriteLine("Registering devices");
             var ignoredTypes = new[] { "bridge", "zigbee_connectivity", "entertainment" };
 
             var devices = await GetResources(client, "device");
@@ -60,20 +59,28 @@ namespace Hue2Mqtt
 
                 foreach (var relatedService in device.Services.Where(s => !ignoredTypes.Contains(s.RelatedType)))
                 {
-                    if (!_servicesByType.ContainsKey(relatedService.RelatedType))
-                    {
-                        _servicesByType[relatedService.RelatedType] = await GetResources(client, relatedService.RelatedType);
-                    }
+                    var relatedServiceType = relatedService.RelatedType;
+                    var relatedServiceId = relatedService.RelatedId;
 
-                    var services = _servicesByType[relatedService.RelatedType];
-
-                    var service = services.Single(s => s.Id == relatedService.RelatedId);
-                    RegisterTopicName(service, deviceName);
+                    var service = await GetHueResource(client, relatedServiceType, relatedServiceId);
+                    RegisterDevice(service, CreateMqttTopic(service, deviceName));
                 }
             }
 
             await RegisterGroupedLights(client, "room");
             await RegisterGroupedLights(client, "zone");
+        }
+
+        private async Task<HueResource> GetHueResource(HttpClient client, string type, string id)
+        {
+            if (!_resourcesByType.ContainsKey(type))
+            {
+                _resourcesByType[type] = await GetResources(client, type);
+            }
+
+            var resources = _resourcesByType[type];
+            var resource = resources.Single(r => r.Id == id);
+            return resource;
         }
 
         async Task RegisterGroupedLights(HttpClient client, string areaType1)
@@ -83,22 +90,18 @@ namespace Hue2Mqtt
             {
                 var roomName = area.Metadata?.Name ?? "Unknown area";
 
-                foreach (var relatedService in area.Services.Where(s => s.RelatedType == "grouped_light"))
+                var relatedService = area.Services.SingleOrDefault(s => s.RelatedType == "grouped_light");
+                if (relatedService != null)
                 {
-                    _mqttTopicsById[relatedService.RelatedId] = $"{roomName}Lights".Pascalize();
+                    var group = await GetHueResource(client, relatedService.RelatedType, relatedService.RelatedId);
+                    var mqttTopic = $"{roomName}Lights".Pascalize();
+                    RegisterDevice(group, mqttTopic);
                 }
             }
         }
 
-        void RegisterTopicName(HueResource resource, string mainDeviceName)
+        void RegisterDevice(HueResource resource, string mqttTopic)
         {
-            var mqttTopic = CreateMqttTopic(resource, mainDeviceName);
-
-            if (!_mqttTopicsById.ContainsKey(resource.Id))
-            {
-                _mqttTopicsById[resource.Id] = mqttTopic;
-            }
-
             if (!_mqttDevicesById.ContainsKey(resource.Id))
             {
                 var mqttDevice = MqttDevice.CreateFrom(mqttTopic, resource);
@@ -153,7 +156,10 @@ namespace Hue2Mqtt
                     {
                         foreach (var datum in @event.Data)
                         {
-                            Console.WriteLine(_mqttTopicsById[datum.Id]);
+                            if (_mqttDevicesById.ContainsKey(datum.Id))
+                            {
+                                Console.WriteLine(_mqttDevicesById[datum.Id].Topic);
+                            }
                         }
                     }
                 }

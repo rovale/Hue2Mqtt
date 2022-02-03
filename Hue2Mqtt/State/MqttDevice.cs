@@ -16,7 +16,7 @@ namespace Hue2Mqtt.State
                 return new MqttDevicePower(topic, hueResource);
             }
 
-            if (hueResource.Type == "light")
+            if (hueResource.Type == "light" || hueResource.Type == "grouped_light")
             {
                 return new MqttLight(topic, hueResource);
             }
