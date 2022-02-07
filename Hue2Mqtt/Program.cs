@@ -1,8 +1,7 @@
 ﻿using Hue2Mqtt;
+using Hue2Mqtt.Configuration;
+using Microsoft.Extensions.Configuration;
 using Serilog;
-
-const string key = "QdvOeyTvim778xIdkxT38cBEsx3wd5B4As1r5d9T";
-Uri baseAddress = new("https://192.168.178.200/");
 
 var logFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs", "Hue2Mqtt.log");
 
@@ -13,4 +12,13 @@ Log.Logger = new LoggerConfiguration()
 
 Log.Information($"Log file: {logFile}");
 
-await new Translator(new HueClient(baseAddress, key), new MqttClient()).Start();
+var config = LocalConfiguration.BuildConfiguration(Directory.GetCurrentDirectory());
+var applicationConfig = config.Get<ApplicationOptions>();
+
+var hueBaseAddress = new Uri(applicationConfig.HueBaseAddress);
+var hueKey = applicationConfig.HueKey;
+
+var mqttServer = applicationConfig.MqttServer;
+var mqttPort = applicationConfig.MqttPort;
+
+await new Translator(new HueClient(hueBaseAddress, hueKey), new MqttClient(mqttServer, mqttPort)).Start();

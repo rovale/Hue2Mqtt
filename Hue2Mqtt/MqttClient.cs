@@ -21,10 +21,10 @@ internal class MqttClient
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public MqttClient()
+    public MqttClient(string server, int port)
     {
         _mqttClientOptions = new MqttClientOptionsBuilder()
-            .WithTcpServer("raspberrypi", 1883)
+            .WithTcpServer(server, port)
             .Build();
 
         var factory = new MqttFactory();
