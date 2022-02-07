@@ -5,10 +5,10 @@ namespace Hue2Mqtt.HueApi;
 public class HueResources
 {
     [JsonPropertyName("data")]
-    public HueResource[] data { get; set; }
+    public HueResource[] Data { get; set; }
 }
 
-public class EventStream
+public class Events
 {
     [JsonPropertyName("creationtime")]
     public DateTime CreationTime { get; set; }

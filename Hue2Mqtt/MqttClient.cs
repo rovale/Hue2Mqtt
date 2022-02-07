@@ -4,6 +4,7 @@ using Hue2Mqtt.State;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Client.Options;
+using Serilog;
 
 namespace Hue2Mqtt;
 
@@ -32,7 +33,7 @@ internal class MqttClient
 
         _mqttClient.UseDisconnectedHandler(async e =>
         {
-            Console.WriteLine("### DISCONNECTED FROM SERVER ### Reason: " + e.Reason);
+            Log.Warning("### DISCONNECTED FROM SERVER ### Reason: " + e.Reason);
             await Task.Delay(TimeSpan.FromSeconds(5));
 
             try
@@ -41,7 +42,7 @@ internal class MqttClient
             }
             catch
             {
-                Console.WriteLine("### RECONNECTING FAILED ###");
+                Log.Error("### RECONNECTING FAILED ###");
             }
         });
     }
@@ -62,7 +63,7 @@ internal class MqttClient
     {
         var json = JsonSerializer.Serialize(mqttDevice, mqttDevice.GetType(), _jsonSerializerOptions);
 
-        Console.WriteLine($"- {mqttDevice.Topic} - {json}");
+        Log.Information($"- {mqttDevice.Topic} - {json}");
 
         var message = new MqttApplicationMessageBuilder()
             .WithTopic($"Rovale/Hue2Mqtt/{mqttDevice.Topic}")

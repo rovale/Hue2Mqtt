@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Hue2Mqtt.HueApi;
+using Serilog;
 
 namespace Hue2Mqtt;
 
@@ -51,12 +52,34 @@ internal class HueClient
         var url = $"{ResourceUrl}/{type}";
         var stream = await _httpClient.GetStreamAsync(url);
         var resourceResponse = await JsonSerializer.DeserializeAsync<HueResources>(stream);
-        var resources = resourceResponse!.data;
+        var resources = resourceResponse!.Data;
         return resources;
     }
 
-    public async Task<Stream> GetEventStream()
+    public async Task ProcessEventStream(Func<HueResource,Task> onChange)
     {
-        return await _httpClient.GetStreamAsync(EventStreamUrl);
+        Log.Information("Opening event stream");
+        using var streamReader = new StreamReader(await _httpClient.GetStreamAsync(EventStreamUrl));
+
+        const string dataPrefix = "data: ";
+        while (!streamReader.EndOfStream)
+        {
+            var message = await streamReader.ReadLineAsync();
+            if (message == null) continue;
+            if (!message.StartsWith(dataPrefix)) continue;
+
+            var eventsJson = message.Substring(dataPrefix.Length);
+
+            var events = JsonSerializer.Deserialize<Events[]>(eventsJson);
+            if (events == null) continue;
+
+            foreach (var @event in events)
+            {
+                foreach (var data in @event.Data)
+                {
+                    await onChange(data);
+                }
+            }
+        }
     }
 }
