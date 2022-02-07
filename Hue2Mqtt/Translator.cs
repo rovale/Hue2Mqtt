@@ -9,16 +9,20 @@ namespace Hue2Mqtt;
 internal class Translator
 {
     private readonly HueClient _hueClient;
+    private readonly MqttClient _mqttClient;
     readonly Dictionary<string, MqttDevice> _mqttDevicesById = new();
 
-    public Translator(HueClient hueClient)
+    public Translator(HueClient hueClient, MqttClient mqttClient)
     {
         _hueClient = hueClient;
+        _mqttClient = mqttClient;
     }
 
     public async Task Start()
     {
         await RegisterDevices();
+        await _mqttClient.Connect();
+
         while (true)
         {
             try
@@ -32,6 +36,7 @@ internal class Translator
                 await Task.Delay(TimeSpan.FromSeconds(5));
             }
         }
+        // ReSharper disable once FunctionNeverReturns
     }
 
     async Task RegisterDevices()
@@ -127,19 +132,7 @@ internal class Translator
                     if (!_mqttDevicesById.ContainsKey(hueResource.Id)) continue;
                     var mqttDevice = _mqttDevicesById[hueResource.Id];
                     mqttDevice.UpdateFrom(hueResource);
-
-                    JsonSerializerOptions options = new JsonSerializerOptions
-                    {
-                        Converters =
-                        {
-                            new JsonStringEnumConverter()
-                        },
-                        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-                    };
-
-                    var json = JsonSerializer.Serialize(mqttDevice, mqttDevice.GetType(), options);
-
-                    Console.WriteLine($"- {mqttDevice.Topic} - {json}");
+                    await _mqttClient.Publish(mqttDevice);
                 }
             }
         }
