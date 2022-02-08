@@ -1,24 +1,40 @@
-﻿using Hue2Mqtt;
+﻿using System.ComponentModel.DataAnnotations;
+using Hue2Mqtt;
 using Hue2Mqtt.Configuration;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 
-var logFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs", "Hue2Mqtt.log");
+// https://www.roundthecode.com/dotnet/how-to-read-the-appsettings-json-configuration-file-in-asp-net-core
+var config = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("AppSettings.json", optional: false, reloadOnChange: true)
+    .Build();
 
+var logFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs", "Hue2Mqtt-.log");
 Log.Logger = new LoggerConfiguration()
-    .WriteTo.Logger(config => { config.WriteTo.Console(); })
-    .WriteTo.Logger(config => { config.WriteTo.File(logFile); })
+    .ReadFrom.Configuration(config, sectionName: "Logging")
+    .WriteTo.Logger(c => { c.WriteTo.Console(); })
+    .WriteTo.Logger(c => { c.WriteTo.File(logFile, rollingInterval: RollingInterval.Day); })
     .CreateLogger();
 
-Log.Information($"Log file: {logFile}");
+var appSettings = config.GetSection("Hue2Mqtt").Get<AppSettings>();
+var validationResults = new List<ValidationResult>();
+var valid = Validator.TryValidateObject(appSettings, new ValidationContext(appSettings), validationResults, true);
 
-var config = LocalConfiguration.BuildConfiguration(Directory.GetCurrentDirectory());
-var applicationConfig = config.Get<ApplicationOptions>();
+if (!valid)
+{
+    foreach (var validationResult in validationResults)
+    {
+        Log.Error(validationResult.ErrorMessage);
+    }
 
-var hueBaseAddress = new Uri(applicationConfig.HueBaseAddress);
-var hueKey = applicationConfig.HueKey;
+    return;
+}
 
-var mqttServer = applicationConfig.MqttServer;
-var mqttPort = applicationConfig.MqttPort;
+var hueBaseAddress = new Uri(appSettings.HueBaseAddress);
+var hueKey = appSettings.HueKey;
+
+var mqttServer = appSettings.MqttServer;
+var mqttPort = appSettings.MqttPort;
 
 await new Translator(new HueClient(hueBaseAddress, hueKey), new MqttClient(mqttServer, mqttPort)).Start();

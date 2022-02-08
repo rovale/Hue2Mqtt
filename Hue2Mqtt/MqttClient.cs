@@ -23,6 +23,8 @@ internal class MqttClient
 
     public MqttClient(string server, int port)
     {
+        Log.Debug($"MQTT broker {server}:{port}");
+
         _mqttClientOptions = new MqttClientOptionsBuilder()
             .WithTcpServer(server, port)
             .Build();
@@ -33,16 +35,17 @@ internal class MqttClient
 
         _mqttClient.UseDisconnectedHandler(async e =>
         {
-            Log.Warning("### DISCONNECTED FROM SERVER ### Reason: " + e.Reason);
+            Log.Warning("Disconnected from MQTT broker, reason: " + e.Reason);
             await Task.Delay(TimeSpan.FromSeconds(5));
-
             try
             {
+                Log.Information("Reconnecting");
                 await _mqttClient.ConnectAsync(_mqttClientOptions);
+                Log.Information("Connected");
             }
             catch
             {
-                Log.Error("### RECONNECTING FAILED ###");
+                Log.Error("Failed to reconnect");
             }
         });
     }
