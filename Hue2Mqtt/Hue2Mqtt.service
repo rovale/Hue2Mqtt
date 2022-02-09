@@ -5,14 +5,13 @@ Description=Hue2Mqtt (https://github.com/rovale/Hue2Mqtt)
 After=network.target
 
 [Service]
-ExecStart=dotnet /home/pi/Hue2Mqtt/net6.0/Hue2Mqtt.dll
+ExecStart=/usr/bin/dotnet/dotnet /home/pi/Hue2Mqtt/net6.0/Hue2Mqtt.dll
 WorkingDirectory=/home/pi/Hue2Mqtt/net6.0
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
 User=pi
 RestartSec=15
-Environment=DOTNET_ROOT=/usr/bin/dotnet
 
 [Install]
 WantedBy=multi-user.target
