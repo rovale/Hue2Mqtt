@@ -1,6 +1,5 @@
 ﻿using Hue2Mqtt.HueApi;
 using Hue2Mqtt.State;
-using Humanizer;
 using Serilog;
 
 namespace Hue2Mqtt;
@@ -9,6 +8,8 @@ internal class Translator
 {
     private readonly HueClient _hueClient;
     private readonly MqttClient _mqttClient;
+    private string _bridgeName = "bridge name";
+
     readonly Dictionary<string, MqttDevice> _mqttDevicesById = new();
 
     public Translator(HueClient hueClient, MqttClient mqttClient)
@@ -44,6 +45,7 @@ internal class Translator
         var ignoredTypes = new[] { "bridge", "zigbee_connectivity", "entertainment" };
 
         var devices = await _hueClient.GetResources("device");
+        RegisterBridge(devices);
 
         foreach (var device in devices)
         {
@@ -63,6 +65,13 @@ internal class Translator
         await RegisterGroupedLights("zone");
     }
 
+    private void RegisterBridge(HueResource[] devices)
+    {
+        _bridgeName = devices
+            .SingleOrDefault(d => d.Metadata?.Archetype == "bridge_v2")?
+            .Metadata?.Name ?? _bridgeName;
+    }
+
     async Task RegisterGroupedLights(string areaType)
     {
         var areas = await _hueClient.GetResources(areaType);
@@ -74,7 +83,7 @@ internal class Translator
             if (relatedService != null)
             {
                 var group = await _hueClient.GetResource(relatedService.RelatedType, relatedService.RelatedId);
-                var mqttTopic = $"{roomName}Lights".Pascalize();
+                var mqttTopic = _mqttClient.CreateMqttTopic($"{roomName}Lights");
                 RegisterDevice(group, mqttTopic);
             }
         }
@@ -89,9 +98,9 @@ internal class Translator
         }
     }
 
-    private static string CreateMqttTopic(HueResource resource, string mainDeviceName)
+    private string CreateMqttTopic(HueResource resource, string mainDeviceName)
     {
-        var nameParts = new List<string> { mainDeviceName.Pascalize() };
+        var nameParts = new List<string> { mainDeviceName };
 
         var resourceType = resource.Type;
 
@@ -101,11 +110,10 @@ internal class Translator
         }
         else if (resourceType != "light")
         {
-            nameParts.Add(resourceType.Pascalize());
+            nameParts.Add(resourceType);
         }
 
-        string name = string.Join("/", nameParts);
-        return name;
+        return _mqttClient.CreateMqttTopic(nameParts.ToArray());
     }
 
     private async Task OnChange(HueResource hueResource)
@@ -113,6 +121,6 @@ internal class Translator
         if (!_mqttDevicesById.ContainsKey(hueResource.Id)) return;
         var mqttDevice = _mqttDevicesById[hueResource.Id];
         mqttDevice.UpdateFrom(hueResource);
-        await _mqttClient.Publish(mqttDevice);
+        await _mqttClient.Publish(_bridgeName, mqttDevice);
     }
 }

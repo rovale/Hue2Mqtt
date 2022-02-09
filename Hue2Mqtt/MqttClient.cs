@@ -1,6 +1,8 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using Hue2Mqtt.Extensions;
 using Hue2Mqtt.State;
+using Humanizer;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Client.Options;
@@ -16,9 +18,10 @@ internal class MqttClient
     {
         Converters =
         {
-            new JsonStringEnumConverter()
+            new JsonStringEnumConverter(new UnderscoreUppercaseNamingPolicy())
         },
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        PropertyNamingPolicy = new UnderscoreNamingPolicy()
     };
 
     public MqttClient(string server, int port)
@@ -50,26 +53,24 @@ internal class MqttClient
         });
     }
 
+    public string CreateMqttTopic(params string[] nameParts)
+    {
+        return string.Join("/", nameParts).Underscore();
+    }
+
     public async Task Connect()
     {
         await _mqttClient.ConnectAsync(_mqttClientOptions, CancellationToken.None);
-
-        var message = new MqttApplicationMessageBuilder()
-            .WithTopic("Rovale/Hue2Mqtt")
-            .WithPayload("Hello World")
-            .Build();
-
-        await _mqttClient.PublishAsync(message);
     }
 
-    public async Task Publish(MqttDevice mqttDevice)
+    public async Task Publish(string bridgeName, MqttDevice mqttDevice)
     {
         var json = JsonSerializer.Serialize(mqttDevice, mqttDevice.GetType(), _jsonSerializerOptions);
 
         Log.Information($"- {mqttDevice.Topic} - {json}");
 
         var message = new MqttApplicationMessageBuilder()
-            .WithTopic($"Rovale/Hue2Mqtt/{mqttDevice.Topic}")
+            .WithTopic($"hue/{bridgeName}/{mqttDevice.Topic}".Underscore())
             .WithPayload(json)
             .Build();
 

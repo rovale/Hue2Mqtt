@@ -11,7 +11,7 @@ internal class MqttButton : MqttDevice
 
     public sealed override void UpdateFrom(HueResource hueResource)
     {
-        Event = hueResource.Button?.LastEvent;
+        Event = hueResource.Button?.LastEvent.ToUpper();
     }
 
     public string? Event { get; set; }

@@ -61,6 +61,9 @@ public class HueResource
 
 public class Metadata
 {
+    [JsonPropertyName("archetype")]
+    public string? Archetype { get; set; }
+
     [JsonPropertyName("name")]
     public string? Name { get; set; }
 
