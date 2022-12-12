@@ -21,7 +21,7 @@ internal class MqttLight : MqttDevice
             Brightness = hueResource.Brightness.Value;
         }
 
-        if (hueResource.Color != null)
+        if (hueResource.Color is { Value: { } })
         {
             Color = new Color
                 {

@@ -20,7 +20,16 @@ internal class Translator
 
     public async Task Start()
     {
-        await RegisterDevices();
+        try
+        {
+            await RegisterDevices();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "An error occurred registering the devices");
+            throw;
+        }
+
         await _mqttClient.Connect();
 
         while (true)

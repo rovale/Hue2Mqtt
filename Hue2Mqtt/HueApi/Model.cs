@@ -96,7 +96,7 @@ public class Brightness
 public class Color
 {
     [JsonPropertyName("xy")]
-    public Xy Value { get; set; }
+    public Xy? Value { get; set; }
 }
 
 public class Xy
