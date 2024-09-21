@@ -36,5 +36,6 @@ var hueKey = appSettings.HueKey;
 
 var mqttServer = appSettings.MqttServer;
 var mqttPort = appSettings.MqttPort;
+var baseTopic = appSettings.BaseTopic;
 
-await new Translator(new HueClient(hueBaseAddress, hueKey), new MqttClient(mqttServer, mqttPort)).Start();
+await new Translator(new HueClient(hueBaseAddress, hueKey), new MqttClient(mqttServer, mqttPort, baseTopic)).Start();

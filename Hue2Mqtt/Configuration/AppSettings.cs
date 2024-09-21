@@ -15,5 +15,7 @@ namespace Hue2Mqtt.Configuration
 
         [Required, Range(1, 65535)] 
         public int MqttPort { get; set; }
+
+        public string BaseTopic { get; set; } = "hue";
     }
 }

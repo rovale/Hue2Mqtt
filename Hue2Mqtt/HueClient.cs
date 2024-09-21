@@ -37,17 +37,23 @@ internal class HueClient
 
     public async Task<HueResource> GetResource(string type, string id)
     {
-        if (!_resourcesByType.ContainsKey(type))
-        {
-            _resourcesByType[type] = await GetResources(type);
-        }
-
-        var resources = _resourcesByType[type];
+        var resources = await GetResources(type);
         var resource = resources.Single(r => r.Id == id);
         return resource;
     }
 
     public async Task<HueResource[]> GetResources(string type)
+    {
+        if (!_resourcesByType.ContainsKey(type))
+        {
+            _resourcesByType[type] = await FetchResources(type);
+        }
+
+        var resources = _resourcesByType[type];
+        return resources;
+    }
+
+    private async Task<HueResource[]> FetchResources(string type)
     {
         var url = $"{ResourceUrl}/{type}";
         var stream = await _httpClient.GetStreamAsync(url);

@@ -11,6 +11,7 @@ namespace Hue2Mqtt;
 
 internal class MqttClient
 {
+    private readonly string _baseTopic;
     private readonly MqttClientOptions _mqttClientOptions;
     private readonly IMqttClient _mqttClient;
     private readonly JsonSerializerOptions _jsonSerializerOptions = new()
@@ -23,8 +24,9 @@ internal class MqttClient
         PropertyNamingPolicy = new UnderscoreNamingPolicy()
     };
 
-    public MqttClient(string server, int port)
+    public MqttClient(string server, int port, string baseTopic)
     {
+        _baseTopic = baseTopic;
         Log.Debug($"MQTT broker {server}:{port}");
 
         _mqttClientOptions = new MqttClientOptionsBuilder()
@@ -74,7 +76,7 @@ internal class MqttClient
         Log.Information($"- {topic} - {json}");
 
         var message = new MqttApplicationMessageBuilder()
-            .WithTopic($"hue/{bridgeName}/{topic}".Underscore())
+            .WithTopic($"{_baseTopic}/{bridgeName}/{topic}".Underscore())
             .WithPayload(json)
             .Build();
 
