@@ -26,7 +26,10 @@ public class HueResource
     public Metadata? Metadata { get; set; }
 
     [JsonPropertyName("services")]
-    public Service[] Services { get; set; }
+    public Reference[] Services { get; set; }
+
+    [JsonPropertyName("owner")]
+    public Reference? Owner { get; set; }
 
     [JsonPropertyName("type")]
     public string Type { get; set; }
@@ -57,6 +60,9 @@ public class HueResource
     
     [JsonPropertyName("button")]
     public Button? Button { get; set; }
+
+    [JsonPropertyName("status")]
+    public string? Status { get; set; }
 }
 
 public class Metadata
@@ -71,7 +77,7 @@ public class Metadata
     public int? ControlId { get; set; }
 }
 
-public class Service
+public class Reference
 {
     [JsonPropertyName("rid")]
     public string RelatedId { get; set; }

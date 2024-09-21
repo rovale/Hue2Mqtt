@@ -23,6 +23,8 @@ namespace Hue2Mqtt.State
         public int? LightLevel { get; set; }
         public bool? Motion { get; set; }
         public float? Temperature { get; set; }
+        public string? Status { get; set; }
+        public bool? Online { get; set; }
 
         public void UpdateFrom(HueResource hueResource)
         {
@@ -74,6 +76,25 @@ namespace Hue2Mqtt.State
             if (hueResource.Temperature != null)
             {
                 Temperature = hueResource.Temperature.IsValid ? hueResource.Temperature.Value : null;
+            }
+
+            if (hueResource.Status != null)
+            {
+                Online = null;
+                Status = null;
+
+                if (hueResource.Status == "connected")
+                {
+                    Online = true;
+                }
+                else if (hueResource.Status == "connectivity_issue")
+                {
+                    Online = false;
+                }
+                else
+                {
+                    Status = hueResource.Status;
+                }
             }
         }
     }

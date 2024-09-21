@@ -1,6 +1,7 @@
 ﻿using Hue2Mqtt.HueApi;
 using Hue2Mqtt.State;
 using Serilog;
+using System.Linq;
 
 namespace Hue2Mqtt;
 
@@ -48,15 +49,14 @@ internal class Translator(HueClient hueClient, MqttClient mqttClient)
     private async Task RegisterDevices()
     {
         Log.Information("Registering devices");
-        var ignoredTypes = new[] { "bridge", "zigbee_connectivity", "entertainment", "device_software_update", "zigbee_device_discovery" };
+        var ignoredTypes = new[] { "bridge", "entertainment", "device_software_update", "zigbee_device_discovery" };
 
         var devices = await hueClient.GetResources("device");
 
-        _bridgeName = devices
-            .SingleOrDefault(d => d.Metadata?.Archetype == "bridge_v2")?
-            .Metadata?.Name ?? _bridgeName;
+        var bridge = devices.SingleOrDefault(d => d.Metadata?.Archetype == "bridge_v2");
+        _bridgeName = bridge?.Metadata?.Name ?? _bridgeName;
 
-        foreach (var device in devices)
+        foreach (var device in devices.Where(d => d != bridge))
         {
             var deviceName = device.Metadata?.Name ?? "Unknown device";
 
@@ -66,10 +66,12 @@ internal class Translator(HueClient hueClient, MqttClient mqttClient)
                     .ToArray()
                     .Select(GetRelatedService));
 
-            if (relatedServices.Length > 0)
-            {
-                RegisterMqttDevice(device, relatedServices, mqttClient.CreateMqttTopic(device.Type, deviceName));
-            }
+            var deviceType = "unknown";
+            if (relatedServices.Any(s => s.Type == "light")) { deviceType = "light"; }
+            if (relatedServices.Any(s => s.Type == "motion")) { deviceType = "motion"; }
+            if (relatedServices.Any(s => s.Type == "button")) { deviceType = "button"; }
+
+            RegisterMqttDevice(device, relatedServices, mqttClient.CreateMqttTopic(deviceType, deviceName));
         }
 
         await RegisterGroupedLights("room");
@@ -93,7 +95,7 @@ internal class Translator(HueClient hueClient, MqttClient mqttClient)
         }
     }
 
-    private async Task<HueResource> GetRelatedService(Service relatedService)
+    private async Task<HueResource> GetRelatedService(Reference relatedService)
     {
         var relatedServiceType = relatedService.RelatedType;
         var relatedServiceId = relatedService.RelatedId;
@@ -118,20 +120,26 @@ internal class Translator(HueClient hueClient, MqttClient mqttClient)
 
     private async Task OnChange(HueResource hueResource)
     {
-        var devices = await hueClient.GetResources("device");
-        var zones = await hueClient.GetResources("zone");
-        var rooms = await hueClient.GetResources("room");
-
-        var all = devices.Union(rooms).Union(zones);
-
-        var deviceOrGroup =
-            all.FirstOrDefault(d =>
-                d.Services.Any(s => s.RelatedId == hueResource.Id));
+        var deviceOrGroup = await GetDeviceOrGroup(hueResource);
 
         if (deviceOrGroup == null) return;
         if (!_mqttDevicesById.TryGetValue(deviceOrGroup.Id, out var mqttDevice)) return;
 
         mqttDevice.UpdateFrom(hueResource);
         await mqttClient.Publish(_bridgeName, mqttDevice);
+    }
+
+    private async Task<HueResource?> GetDeviceOrGroup(HueResource hueResource)
+    {
+        var devices = await hueClient.GetResources("device");
+        var zones = await hueClient.GetResources("zone");
+        var rooms = await hueClient.GetResources("room");
+
+        var all = devices.Union(rooms).Union(zones).Where(d => d.Metadata?.Name != _bridgeName);
+
+        var deviceOrGroup =
+            all.FirstOrDefault(d =>
+                d.Services.Any(s => s.RelatedId == hueResource.Id));
+        return deviceOrGroup;
     }
 }
