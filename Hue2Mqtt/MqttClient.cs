@@ -5,14 +5,13 @@ using Hue2Mqtt.State;
 using Humanizer;
 using MQTTnet;
 using MQTTnet.Client;
-using MQTTnet.Client.Options;
 using Serilog;
 
 namespace Hue2Mqtt;
 
 internal class MqttClient
 {
-    private readonly IMqttClientOptions _mqttClientOptions;
+    private readonly MqttClientOptions _mqttClientOptions;
     private readonly IMqttClient _mqttClient;
     private readonly JsonSerializerOptions _jsonSerializerOptions = new()
     {
@@ -36,7 +35,7 @@ internal class MqttClient
 
         _mqttClient = factory.CreateMqttClient();
 
-        _mqttClient.UseDisconnectedHandler(async e =>
+        _mqttClient.DisconnectedAsync += async e =>
         {
             Log.Warning("Disconnected from MQTT broker, reason: " + e.Reason);
             await Task.Delay(TimeSpan.FromSeconds(5));
@@ -50,7 +49,7 @@ internal class MqttClient
             {
                 Log.Error("Failed to reconnect");
             }
-        });
+        };
     }
 
     public string CreateMqttTopic(params string[] nameParts)
@@ -66,11 +65,16 @@ internal class MqttClient
     public async Task Publish(string bridgeName, MqttDevice mqttDevice)
     {
         var json = JsonSerializer.Serialize(mqttDevice, mqttDevice.GetType(), _jsonSerializerOptions);
+        var topic = mqttDevice.Topic;
+        await Publish(bridgeName, topic, json);
+    }
 
-        Log.Information($"- {mqttDevice.Topic} - {json}");
+    public async Task Publish(string bridgeName, string topic, string json)
+    {
+        Log.Information($"- {topic} - {json}");
 
         var message = new MqttApplicationMessageBuilder()
-            .WithTopic($"hue/{bridgeName}/{mqttDevice.Topic}".Underscore())
+            .WithTopic($"hue/{bridgeName}/{topic}".Underscore())
             .WithPayload(json)
             .Build();
 

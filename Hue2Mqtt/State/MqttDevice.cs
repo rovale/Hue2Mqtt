@@ -5,7 +5,7 @@ namespace Hue2Mqtt.State
 {
     internal abstract class MqttDevice
     {
-        public static MqttDevice CreateFrom(string topic, HueResource hueResource)
+        public static MqttDevice? CreateFrom(string topic, HueResource hueResource)
         {
             if (hueResource.Type == "button")
             {
@@ -37,7 +37,7 @@ namespace Hue2Mqtt.State
                 return new MqttTemperature(topic, hueResource);
             }
 
-            throw new NotSupportedException($"Unknown device type {hueResource.Type}");
+            return null;
         }
 
         protected MqttDevice(string topic)

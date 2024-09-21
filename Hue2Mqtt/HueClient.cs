@@ -51,7 +51,11 @@ internal class HueClient
     {
         var url = $"{ResourceUrl}/{type}";
         var stream = await _httpClient.GetStreamAsync(url);
-        var resourceResponse = await JsonSerializer.DeserializeAsync<HueResources>(stream);
+
+        using var streamReader = new StreamReader(stream);
+        var jsonString = await streamReader.ReadToEndAsync();
+        //Log.Debug($"Type: {type} - ${jsonString}");
+        var resourceResponse = JsonSerializer.Deserialize<HueResources>(jsonString);
         var resources = resourceResponse!.Data;
         return resources;
     }

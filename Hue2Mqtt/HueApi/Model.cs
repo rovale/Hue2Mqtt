@@ -156,5 +156,5 @@ public class Battery
 public class Button
 {
     [JsonPropertyName("last_event")]
-    public string LastEvent { get; set; }
+    public string? LastEvent { get; set; }
 }

@@ -51,7 +51,7 @@ internal class Translator
     async Task RegisterDevices()
     {
         Log.Information("Registering devices");
-        var ignoredTypes = new[] { "bridge", "zigbee_connectivity", "entertainment" };
+        var ignoredTypes = new[] { "bridge", "zigbee_connectivity", "entertainment", "device_software_update", "zigbee_device_discovery" };
 
         var devices = await _hueClient.GetResources("device");
         RegisterBridge(devices);
@@ -65,8 +65,8 @@ internal class Translator
                 var relatedServiceType = relatedService.RelatedType;
                 var relatedServiceId = relatedService.RelatedId;
 
-                var service = await _hueClient.GetResource(relatedServiceType, relatedServiceId);
-                RegisterDevice(service, CreateMqttTopic(service, deviceName));
+                var resource = await _hueClient.GetResource(relatedServiceType, relatedServiceId);
+                await RegisterDevice(resource, CreateMqttTopic(resource, deviceName));
             }
         }
 
@@ -98,18 +98,25 @@ internal class Translator
         }
     }
 
-    void RegisterDevice(HueResource resource, string mqttTopic)
+    async Task RegisterDevice(HueResource resource, string mqttTopic)
     {
         if (!_mqttDevicesById.ContainsKey(resource.Id))
         {
             var mqttDevice = MqttDevice.CreateFrom(mqttTopic, resource);
-            _mqttDevicesById[resource.Id] = mqttDevice;
+            if (mqttDevice != null)
+            {
+                _mqttDevicesById[resource.Id] = mqttDevice;
+            }
+            else
+            {
+                await _mqttClient.Publish(_bridgeName, "system", "resource type " + resource.Type + " is not known.");
+            }
         }
     }
 
     private string CreateMqttTopic(HueResource resource, string mainDeviceName)
     {
-        var nameParts = new List<string> { mainDeviceName };
+        List<string> nameParts = [mainDeviceName];
 
         var resourceType = resource.Type;
 
