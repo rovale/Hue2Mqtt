@@ -32,6 +32,16 @@ internal class Translator
 
         await _mqttClient.Connect();
 
+        string[] typesToPublishNow = ["device_power", "light", "temperature", "light_level"];
+        foreach (var typeToPublishNow in typesToPublishNow)
+        {
+            var resources = await _hueClient.GetResources(typeToPublishNow);
+            foreach (var resource in resources)
+            {
+                await OnChange(resource);
+            }
+        }
+
         while (true)
         {
             try
@@ -134,8 +144,8 @@ internal class Translator
 
     private async Task OnChange(HueResource hueResource)
     {
-        if (!_mqttDevicesById.ContainsKey(hueResource.Id)) return;
-        var mqttDevice = _mqttDevicesById[hueResource.Id];
+        if (!_mqttDevicesById.TryGetValue(hueResource.Id, out var mqttDevice)) return;
+
         mqttDevice.UpdateFrom(hueResource);
         await _mqttClient.Publish(_bridgeName, mqttDevice);
     }
