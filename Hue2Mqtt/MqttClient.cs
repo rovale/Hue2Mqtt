@@ -31,6 +31,9 @@ internal class MqttClient
 
         _mqttClientOptions = new MqttClientOptionsBuilder()
             .WithTcpServer(server, port)
+            .WithWillTopic(baseTopic)
+            .WithWillPayload("{\"online\": false}")
+            .WithWillRetain()
             .Build();
 
         var factory = new MqttFactory();
@@ -52,6 +55,11 @@ internal class MqttClient
                 Log.Error("Failed to reconnect");
             }
         };
+
+        _mqttClient.ConnectedAsync += async e =>
+        {
+            await _mqttClient.PublishStringAsync(baseTopic, "{\"online\": true}", retain: true);
+        };
     }
 
     public string CreateMqttTopic(params string[] nameParts)
@@ -71,13 +79,14 @@ internal class MqttClient
         await Publish(bridgeName, topic, json);
     }
 
-    public async Task Publish(string bridgeName, string topic, string json)
+    private async Task Publish(string bridgeName, string topic, string json)
     {
         Log.Information($"- {topic} - {json}");
 
         var message = new MqttApplicationMessageBuilder()
             .WithTopic($"{_baseTopic}/{bridgeName}/{topic}".Underscore())
             .WithPayload(json)
+            .WithRetainFlag()
             .Build();
 
         await _mqttClient.PublishAsync(message);

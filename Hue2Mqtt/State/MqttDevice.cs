@@ -24,10 +24,16 @@ namespace Hue2Mqtt.State
         public bool? Motion { get; set; }
         public float? Temperature { get; set; }
         public string? Status { get; set; }
+        public DateTime? LastUpdatedAt { get; set; }
         public bool? Online { get; set; }
 
-        public void UpdateFrom(HueResource hueResource)
+        public void UpdateFrom(HueResource hueResource, DateTime? lastUpdatedAt = null)
         {
+            if (lastUpdatedAt != null)
+            {
+                LastUpdatedAt = lastUpdatedAt;
+            }
+
             if (hueResource.Button != null)
             {
                 Event = hueResource.Button.LastEvent?.ToUpper();

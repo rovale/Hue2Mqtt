@@ -66,7 +66,7 @@ internal class HueClient
         return resources;
     }
 
-    public async Task ProcessEventStream(Func<HueResource,Task> onChange)
+    public async Task ProcessEventStream(Func<HueResource, DateTime,Task> onChange)
     {
         Log.Information("Opening event stream");
         using var streamReader = new StreamReader(await _httpClient.GetStreamAsync(EventStreamUrl));
@@ -87,7 +87,7 @@ internal class HueClient
             {
                 foreach (var data in @event.Data)
                 {
-                    await onChange(data);
+                    await onChange(data, @event.CreationTime);
                 }
             }
         }

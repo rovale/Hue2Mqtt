@@ -1,7 +1,6 @@
 ﻿using Hue2Mqtt.HueApi;
 using Hue2Mqtt.State;
 using Serilog;
-using System.Linq;
 
 namespace Hue2Mqtt;
 
@@ -118,28 +117,12 @@ internal class Translator(HueClient hueClient, MqttClient mqttClient)
         }
     }
 
-    private async Task OnChange(HueResource hueResource)
+    private async Task OnChange(HueResource hueResource, DateTime lastUpdate)
     {
-        var deviceOrGroup = await GetDeviceOrGroup(hueResource);
-
-        if (deviceOrGroup == null) return;
+        var deviceOrGroup = await hueClient.GetResource(hueResource.Owner!.RelatedType, hueResource.Owner!.RelatedId);
         if (!_mqttDevicesById.TryGetValue(deviceOrGroup.Id, out var mqttDevice)) return;
 
-        mqttDevice.UpdateFrom(hueResource);
+        mqttDevice.UpdateFrom(hueResource, lastUpdate);
         await mqttClient.Publish(_bridgeName, mqttDevice);
-    }
-
-    private async Task<HueResource?> GetDeviceOrGroup(HueResource hueResource)
-    {
-        var devices = await hueClient.GetResources("device");
-        var zones = await hueClient.GetResources("zone");
-        var rooms = await hueClient.GetResources("room");
-
-        var all = devices.Union(rooms).Union(zones).Where(d => d.Metadata?.Name != _bridgeName);
-
-        var deviceOrGroup =
-            all.FirstOrDefault(d =>
-                d.Services.Any(s => s.RelatedId == hueResource.Id));
-        return deviceOrGroup;
     }
 }
